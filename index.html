@@ -10,7 +10,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" />
-    <script src="./app.js" defer></script>
+    <script src="./config.js?v=clerk-config-20261111"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script type="module" src="./app.js?v=razorpay-checkout-20261111"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -29,45 +31,49 @@
         </nav>
         <div class="sidebar-spacer"></div>
         <div class="sidebar-promo"><div class="promo-icon">✳</div><strong>Good things travel.</strong><p>Invite a friend and you both get ₹150 off your next ride.</p><button id="inviteButton" class="text-link">Invite a friend <span>↗</span></button></div>
-        <button class="account-mini" data-view="profile"><span class="avatar">S</span><span class="account-copy"><strong>Sam Taylor</strong><small>Rider account</small></span><span class="more">···</span></button>
+        <button class="account-mini" data-view="profile"><span class="avatar">R</span><span class="account-copy"><strong>Rider</strong><small>Account & records</small></span><span class="more">···</span></button>
       </aside>
 
       <main class="main-area" id="home">
         <header class="topbar">
           <button class="mobile-brand brand" data-view="home"><span class="brand-mark">w.</span><span>wayfare</span></button>
-          <div class="breadcrumb"><span>Good afternoon, Sam</span><span class="crumb-dot">·</span><span class="muted">Saturday, 7 November</span></div>
-          <div class="top-actions"><button class="icon-button bell" aria-label="Notifications"><span>♧</span><i></i></button><button class="help-button" data-view="help">Need a hand? <span>↗</span></button><button class="avatar top-avatar" data-view="profile" aria-label="Open profile">S</button></div>
+          <div class="breadcrumb"><span>Hello, Rider</span><span class="crumb-dot">·</span><span class="muted" id="currentDate"></span></div>
+          <div class="top-actions"><button class="icon-button bell" aria-label="Notifications"><span>♧</span><i></i></button><button class="help-button" data-view="help">Need a hand? <span>↗</span></button><button class="help-button" id="viewRideButton" hidden>View active ride</button><button class="help-button" id="driverPreviewButton" hidden>Driver preview</button><button class="auth-button" id="authButton">Sign in / sign up</button><button class="avatar top-avatar" data-view="profile" aria-label="Open profile">R</button></div>
         </header>
 
         <section class="page-heading"><div><div class="eyebrow"><span class="status-dot"></span> YOUR CITY, IN MOTION</div><h1>Where to next?</h1><p>A good day starts with a good ride.</p></div><div class="heading-date"><span class="sun-icon">☼</span><span><strong>24°</strong><small>Bengaluru, India</small></span></div></section>
 
         <div class="dashboard-grid">
           <section class="booking-card card" aria-labelledby="booking-title">
-            <div class="card-header"><div><span class="step-label">01 — PLAN YOUR RIDE</span><h2 id="booking-title">Let's get you there</h2></div><button class="round-icon" aria-label="More booking options">···</button></div>
+            <div class="card-header"><div><span class="step-label">01 — PLAN YOUR RIDE</span><h2 id="booking-title">Let's get you there</h2></div></div>
             <form id="bookingForm">
               <div class="location-fields">
                 <div class="location-symbols"><span class="pickup-pin"></span><span class="route-line"></span><span class="drop-pin"></span></div>
-                <label class="location-input"><span>Pickup location</span><input id="pickup" name="pickup" value="Indiranagar, Bengaluru" autocomplete="street-address" required /><button type="button" class="locate-button" id="locateButton" aria-label="Use current location">◎</button></label>
+                <label class="location-input"><span>Pickup location</span><input id="pickup" name="pickup" placeholder="Choose a pickup location" autocomplete="street-address" required /><button type="button" class="locate-button" id="locateButton" aria-label="Use current location">◎</button></label>
                 <button class="swap-button" type="button" id="swapButton" aria-label="Swap pickup and drop-off">↕</button>
                 <label class="location-input"><span>Where to?</span><input id="destination" name="destination" placeholder="Enter your destination" autocomplete="off" required /><button type="button" class="clear-button" id="clearDestination" aria-label="Clear destination">×</button></label>
               </div>
+              <button type="button" class="route-tool-button" id="moreBookingOptions"><span>＋ Add up to 3 stops</span><small id="stopSummary">Optional · along your route</small></button>
               <div class="suggestions" id="suggestions" aria-label="Popular destinations"><span class="suggestion-label">POPULAR NEAR YOU</span><button type="button" data-destination="Kempegowda International Airport">✈ <span>Kempegowda Airport</span><small>· 38 km</small></button><button type="button" data-destination="Cubbon Park, Bengaluru">❋ <span>Cubbon Park</span><small>· 6 km</small></button><button type="button" data-destination="UB City, Bengaluru">⌂ <span>UB City</span><small>· 8 km</small></button></div>
 
               <div class="ride-options-head"><span class="step-label">02 — PICK YOUR RIDE</span><span class="muted small">Prices are estimates</span></div>
+              <div class="fare-estimate-note" id="fareEstimateNote">Estimated fare includes distance and peak-hour demand · confirm your places for a route-based estimate</div>
               <div class="ride-options" role="radiogroup" aria-label="Choose a ride type">
                 <button type="button" class="ride-option selected" role="radio" aria-checked="true" data-ride="Wayfare Go" data-rate="18" data-base="45"><span class="car-art compact"><i></i></span><span class="ride-info"><strong>Go</strong><small>Quick & easy · 4 seats</small></span><span class="ride-price" id="price-go">₹—</span></button>
                 <button type="button" class="ride-option" role="radio" aria-checked="false" data-ride="Wayfare Comfort" data-rate="25" data-base="75"><span class="car-art comfort"><i></i></span><span class="ride-info"><strong>Comfort</strong><small>Extra room · 4 seats</small></span><span class="ride-price" id="price-comfort">₹—</span></button>
                 <button type="button" class="ride-option" role="radio" aria-checked="false" data-ride="Wayfare XL" data-rate="34" data-base="120"><span class="car-art xl"><i></i></span><span class="ride-info"><strong>XL</strong><small>Bring everyone · 6 seats</small></span><span class="ride-price" id="price-xl">₹—</span></button>
               </div>
               <div class="booking-details"><button type="button" class="detail-button" id="scheduleButton"><span class="detail-icon">◷</span><span><small>WHEN</small><strong id="scheduleLabel">Ride now</strong></span><span class="chevron">⌄</span></button><button type="button" class="detail-button" id="paymentMethodButton"><span class="detail-icon card-icon">▤</span><span><small>PAY WITH</small><strong id="paymentLabel">Cash</strong></span><span class="chevron">⌄</span></button><button type="button" class="detail-button promo-trigger" id="promoButton"><span class="detail-icon promo-tag">%</span><span><small>OFFERS</small><strong id="promoLabel">Add promo</strong></span><span class="chevron">⌄</span></button></div>
+              <div class="promo-spotlight"><span>Save ₹150 on a ride with <strong>WAYFARE150</strong></span><button type="button" id="tryPromoButton">Apply offer</button></div>
               <button class="book-button" id="bookButton" type="submit"><span>Find my ride</span><span class="button-arrow">↗</span></button>
               <p class="secure-note"><span>◈</span> Your ride details are always private</p>
             </form>
           </section>
 
           <section class="map-card card" aria-label="Map preview around Bengaluru">
-            <div class="map-topline"><span class="map-live"><i></i> LIVE AROUND YOU</span><button class="map-expand" id="mapExpand" aria-label="Expand map">⤢</button></div>
+            <div class="map-topline"><span class="map-live"><i></i> <span id="mapStatus">CITY MAP PREVIEW</span></span><button class="map-expand" id="mapExpand" aria-label="Expand map">⤢</button></div>
             <div class="map-canvas" id="mapCanvas">
+              <div id="googleMap" class="google-map" aria-label="Google map"></div>
               <svg class="map-drawing" viewBox="0 0 760 810" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Illustrated map of Bengaluru with roads and parks"><defs><pattern id="blocks" width="108" height="92" patternUnits="userSpaceOnUse"><rect x="8" y="9" width="37" height="28" rx="9" fill="#eeeae1"/><rect x="57" y="13" width="38" height="45" rx="10" fill="#eae8df"/><rect x="13" y="52" width="32" height="30" rx="8" fill="#eeebe2"/><rect x="51" y="67" width="42" height="17" rx="8" fill="#eeebe2"/></pattern></defs>
                 <rect width="760" height="810" fill="#f6f3eb"/><rect width="760" height="810" fill="url(#blocks)"/>
                 <path class="park" d="M-40 424 C56 356 164 391 207 468 S295 567 251 654 C204 739 93 707 -4 756Z"/><path class="park" d="M408 -50 C382 24 422 81 480 103 C530 123 561 165 553 226 C546 282 607 301 664 276 L794 219V-40Z"/><path class="water" d="M607 -30C551 105 639 192 720 169S825 193 777 346s-99 180-81 257 67 126 37 252"/>
@@ -78,10 +84,10 @@
                 <g class="map-marker home-marker" transform="translate(250 316)"><circle r="21"/><path d="M-6 2h12v8H-6zM-8 2 0-5l8 7"/></g><g class="driver-marker" transform="translate(462 384)"><circle class="driver-halo" r="27"/><circle class="driver-circle" r="15"/><path d="M-8 1h16l-2 5h-12zM-6-1l2-5h8l3 5"/></g><g class="driver-marker driver-two" transform="translate(539 576)"><circle class="driver-halo" r="22"/><circle class="driver-circle" r="12"/><path d="M-6 1h12l-2 4h-8zM-5-1l2-4h6l3 4"/></g>
               </svg>
               <div class="map-zoom"><button aria-label="Zoom in">+</button><button aria-label="Zoom out">−</button></div>
-              <div class="nearby-card"><span class="driver-avatars"><i>🚘</i><i>🚙</i><i>🚕</i></span><span><strong>12 drivers nearby</strong><small>Ready when you are</small></span><span class="nearby-arrow">↗</span></div>
+              <div class="nearby-card"><span class="driver-avatars"><i>🚘</i><i>🚙</i><i>🚕</i></span><span><strong>Drivers appear after a match</strong><small>Book a ride to check availability</small></span><span class="nearby-arrow">↗</span></div>
               <div class="map-caption"><span class="caption-live"></span> Bengaluru, Karnataka</div>
             </div>
-            <div class="map-footer"><div><span class="map-stat-label">YOUR RIDES THIS WEEK</span><strong>04 <small>trips</small></strong></div><div class="map-footer-sep"></div><div><span class="map-stat-label">MONEY SAVED</span><strong>₹320</strong></div><button data-view="activity" class="map-history">View history <span>→</span></button></div>
+            <div class="map-footer"><div><span class="map-stat-label">YOUR RIDES THIS WEEK</span><strong><span id="weekRideCount">00</span> <small>trips</small></strong></div><div class="map-footer-sep"></div><div><span class="map-stat-label">MONEY SAVED</span><strong>₹0</strong></div><button data-view="activity" class="map-history">View history <span>→</span></button></div>
           </section>
         </div>
 

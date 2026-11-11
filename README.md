@@ -1,39 +1,54 @@
-# wayfare — Cab Booking App
+# Wayfare — Cab Booking App
 
-A responsive ride-booking MVP inspired by the attached cab-booking project brief. The interface is designed as a polished, self-contained web prototype so it can be opened locally or published as a static GitHub Pages site.
+Responsive cab-booking project based on the supplied **Cab Booking App Project Overview**. It keeps the Wayfare interface and supports a local demo mode; optional Clerk, Supabase, and Google Maps integrations enable authenticated riders/drivers, persistent ride requests/history/reviews/support requests, driver accept/decline and trip status, live rider status, location search, route distance, and map display.
 
-## Run it
+## Run and inspect the site
 
-Open `index.html` in a current browser. There is no build step, package install, API key, or server required.
-
-For local development, an optional static server can be used:
+The browser modules need an HTTP origin. From this folder run:
 
 ```bash
 python -m http.server 8000
 ```
 
-Then open `http://localhost:8000` from this folder.
+Open `http://localhost:8000`. With no `config.js`, the app stays in demo mode. Demo bookings and matching are illustrative and stored in the current browser only; trip history starts empty.
 
-## What is included
+The demo lets you try booking with up to three stops, apply `WAYFARE150`, accept the current request from **Driver preview**, complete the trip, leave a rating/review, edit demo profile fields, and download a trip summary. Demo credentials, driver assignment, GPS, and payment are not real.
 
-- Responsive rider booking screen with pickup, destination suggestions, ride categories, and estimated fares in INR
-- Ride now and scheduled pickup choices, payment preference, and a working sample promo code (`WAYFARE150`)
-- Booking confirmation, simulated driver matching, trip status, cancel flow, and demo ride completion
-- Ride history, a driver rating prompt, profile editing, help and safety information, and an invite code
-- A custom illustrated Bengaluru map preview and mobile navigation
-- Local browser storage for demo trip and preference state
+## Configure the requested services
 
-## Demo behavior and production work
+1. Copy `config.example.js` to `config.js` and add the **publishable/browser** keys only. `config.js` is ignored by Git.
+2. Create a Clerk application. Set the allowed development origin to `http://localhost:8000`, enable email/password sign-up and the contact verification methods you plan to use, optionally enable Google/social login, and copy its publishable key into `clerkPublishableKey`. The app's **Sign in / sign up** button opens Clerk's account flow.
+3. Create a Supabase project. Connect Clerk in Supabase **Authentication → Third-Party Auth**, then run [`supabase/schema.sql`](supabase/schema.sql) in the Supabase SQL Editor for a new database. If you already ran the older Wayfare schema, run [`supabase/razorpay-migration.sql`](supabase/razorpay-migration.sql) instead; it retains existing ride and payment records while adding Razorpay order fields. Add the project URL and publishable key to `config.js`. In Supabase Database → Publications, enable `rides`, `ride_locations`, and `sos_events` for Postgres Changes.
+4. If you use driver accounts, set the Clerk user's public metadata role to `driver` and configure Clerk's session token to include a `user_role` claim copied from that metadata. The SQL policies check this claim before exposing open requests or allowing driver status updates. Only provision trusted driver accounts.
+5. In Google Cloud, enable Maps JavaScript API, Places API, Places API (New), and Routes API; create a browser key restricted to the local/deployed website origins and those APIs. Set it as `googleMapsApiKey`.
+6. Serve the app over HTTPS in production and add the production origin in Clerk, Google Cloud key restrictions, and any CORS allow-list.
 
-This is a front-end MVP. Booking state and trip data live in the current browser only. Map art, nearby drivers, pickup times, fares, payments, authentication, driver matching, and trip status are illustrative demo behavior. The app does not charge money, collect credentials, contact drivers, or send emergency alerts.
+Clerk JWT third-party auth must be configured in Supabase for the browser database calls to pass row-level security. Configure Clerk sign-up for the email/password and phone/social sign-in methods you want to offer; the Clerk screen provides registration and verification. The SQL scopes rider reads/writes to the Clerk `sub` claim. It creates rides, promo codes, reviews, support tickets, live GPS records, SOS alerts, and payment records. Never put a Supabase service-role key, Clerk secret key, or Razorpay key secret in `config.js` or any browser file.
 
-The project brief calls for a production backend, rider and driver accounts, persistent rides and payments, Google Maps routing and tracking, real-time updates, receipts, and reviews. Those integrations need service accounts, secure server endpoints, a database, and deployment configuration. No secrets or live service credentials are included in this repository.
+### Razorpay test checkout API
 
-## Publish on GitHub Pages
+The Express API in `api/` creates a Razorpay order only for the signed-in rider's completed trip. Razorpay Checkout opens over the app; the API verifies the checkout signature and fetches the payment status from Razorpay before updating Supabase. The signed webhook endpoint provides an additional status update path.
 
-1. Create a new GitHub repository, for example `wayfare-cab-booking`.
-2. Add the files from this folder to the repository root and commit them.
-3. In the repository, open **Settings → Pages**, select **Deploy from a branch**, choose `main` and `/(root)`, then save.
-4. After GitHub Pages finishes publishing, paste the repository URL (`https://github.com/your-name/wayfare-cab-booking`) into the Sclaria submission field shown in the screenshot. Use the Pages URL as a demo link if the form asks for one.
+1. In Razorpay Dashboard, switch to **Test Mode** and create test API credentials. In the `api` folder, copy `.env.example` to `.env`, then set `CLERK_SECRET_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `RAZORPAY_KEY_ID`, and `RAZORPAY_KEY_SECRET`. Keep `.env` private. The webhook secret is optional for local checkout verification but recommended for deployed payment status updates.
+2. Run `npm install` and `npm run dev` inside `api/`. The API listens on `http://localhost:4242` by default.
+3. Set `apiBaseUrl: "http://localhost:4242"` in the ignored frontend `config.js`. For webhooks, expose the API through an HTTPS tunnel for development or deploy it, then add `<your-https-api-origin>/api/razorpay/webhook` in Razorpay Dashboard and set its webhook secret as `RAZORPAY_WEBHOOK_SECRET`. Subscribe to `payment.captured`, `payment.failed`, and `order.paid`.
+4. Use only Razorpay test credentials while developing. Test payments are simulated and do not move real money. Razorpay's Checkout methods depend on the methods enabled for the merchant account. Live collections require the applicable merchant activation. See [Razorpay test integration](https://razorpay.com/docs/server-integration/python/test-app/) and [webhook setup](https://razorpay.com/docs/webhooks/).
 
-If your GitHub account is not configured in Git locally, you can upload these files through GitHub's web interface instead.
+## Requirements map
+
+| Brief requirement | Project status |
+| --- | --- |
+| Rider sign-up/sign-in and profile | Clerk account creation, credential/social sign-in, and verified contact settings are enabled when configured. The profile screen opens Clerk's account manager. Enable email/password, phone, and any social providers in the Clerk dashboard. |
+| Pickup/drop-off and fare estimate | Google Places suggestions and Google Routes distance drive the pre-booking fare. The displayed peak-hour/weekend demand factor is a transparent time-based course-project estimate, not a live supply/demand feed. Without selected Google place suggestions, the shown distance is illustrative. |
+| Driver dashboard, accept/decline, assignment | Dashboard, atomic ride acceptance, decline, status changes, completed fare total, and rider rating summary are wired to Supabase for provisioned Clerk driver accounts. Driver onboarding and live dispatch operations need production hardening. |
+| Live ride location, ETA, notifications | Driver browser GPS publishes live coordinates while the driver dashboard is open; Supabase Realtime updates the rider's Google map marker, route, and Google Routes ETA. In-app status notices appear for acceptance, arrival, ride start, and completion. GPS requires an HTTPS deployment (localhost works for development); background tracking and push notifications need deployment work. |
+| Razorpay payments and driver earnings | After completion, the rider can pay through Razorpay Checkout. The backend creates INR orders, verifies returned signatures, checks payment status with Razorpay, and processes signed webhooks. Configure private test keys and deploy the API before checkout works. Driver dashboard displays completed fare totals; it does not calculate platform commission or payouts. |
+| Ride history, payment records, cancellation, reviews | Ride history, ratings/reviews, and payment status use Supabase when configured; a CSV trip/payment summary is downloadable. Cancellation is persisted with a zero fee until a real fee rule is configured. |
+| Multi-stop, promos, SOS, support tickets | A visible booking control adds up to three Google Places stops; Google Routes includes them in the distance, fare, and route line. `WAYFARE150` is seeded as a one-time ₹150 database offer. Live SOS records the rider's coordinates for the assigned driver's open dashboard, with a direct 112 call link; it does not dispatch emergency services or contact a trusted person automatically. Support requests save to Supabase, but need an operator workflow. |
+| Responsive UI, security, deploy, testing | Responsive interface and rider row policies are included. Production security review, end-to-end tests, and deployment remain setup work. |
+
+This is a course-project implementation starter, not a staffed transportation service. Real rider sign-up, database persistence, maps, driver location, SOS-to-driver alerts, and payments are available only after service setup. Do not treat an in-app SOS as emergency dispatch. The brief lists possible stack choices; this project currently uses HTML/CSS/JavaScript plus a separate Node/Express payment API rather than claiming it is a Next.js + Tailwind application.
+
+## Submission
+
+The latest code is in this local project folder. Publish the latest commit to GitHub before using the repository URL as a submission link. The screenshot shows a “Responsive Website Project” field while the supplied brief is for a cab-booking app; confirm the assignment accepts this brief before submitting. No submission has been made.
